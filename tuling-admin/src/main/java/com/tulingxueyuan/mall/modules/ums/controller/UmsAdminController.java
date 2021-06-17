@@ -20,6 +20,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.List;
@@ -34,8 +35,6 @@ import java.util.stream.Collectors;
 @Api(tags = "UmsAdminController", description = "后台用户管理")
 @RequestMapping("/admin")
 public class UmsAdminController {
-    @Autowired
-    HttpSession session;
     @Autowired
     private UmsAdminService adminService;
     @Autowired
@@ -55,13 +54,12 @@ public class UmsAdminController {
     @ApiOperation(value = "登录")
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     @ResponseBody
-    public CommonResult login(@Validated @RequestBody UmsAdminLoginParam umsAdminLoginParam) {
+    public CommonResult login(HttpServletRequest request, @Validated @RequestBody UmsAdminLoginParam umsAdminLoginParam) {
          UmsAdmin login = adminService.login(umsAdminLoginParam.getUsername(), umsAdminLoginParam.getPassword());
         if (login == null) {
             return CommonResult.validateFailed("用户名或密码错误");
         }
-        session.setAttribute(ComConstants.FLAG_CURRENT_USER,login);
-        System.out.println(session.getId());
+        request.getSession().setAttribute(ComConstants.FLAG_CURRENT_USER,login);
         Map<String, String> tokenMap = new HashMap<>();
         // jwt
         return CommonResult.success(tokenMap);
@@ -70,9 +68,8 @@ public class UmsAdminController {
     @ApiOperation(value = "获取当前登录用户信息")
     @RequestMapping(value = "/info", method = RequestMethod.GET)
     @ResponseBody
-    public CommonResult getAdminInfo() {
-        UmsAdmin umsAdmin= (UmsAdmin) session.getAttribute(ComConstants.FLAG_CURRENT_USER);
-        System.out.println(session.getId());
+    public CommonResult getAdminInfo(HttpServletRequest request) {
+        UmsAdmin umsAdmin= (UmsAdmin) request.getSession().getAttribute(ComConstants.FLAG_CURRENT_USER);
         Map<String, Object> data = new HashMap<>();
         data.put("username", umsAdmin.getUsername());
         data.put("menus", roleService.getMenuList(umsAdmin.getId()));
@@ -88,8 +85,8 @@ public class UmsAdminController {
     @ApiOperation(value = "登出功能")
     @RequestMapping(value = "/logout", method = RequestMethod.POST)
     @ResponseBody
-    public CommonResult logout() {
-        session.setAttribute(ComConstants.FLAG_CURRENT_USER,null);
+    public CommonResult logout(HttpServletRequest request) {
+        request.getSession().setAttribute(ComConstants.FLAG_CURRENT_USER,null);
         return CommonResult.success(null);
     }
 
